@@ -10,16 +10,15 @@ import pandas as pd
 import time
 
 
-
-url = 'https://www.tokopedia.com/p/handphone-tablet/handphone'
+num_of_product = 100        # number of product to be scraped
+url = 'https://www.tokopedia.com/p/handphone-tablet/handphone?ob=5&page=1'
 driver = webdriver.Chrome('/Users/agungwicaksono/Downloads/chromedriver')
 driver.get(url=url)
 pagination_class = 'css-txlndr-unf-pagination'
 product_class = 'css-bk6tzz'
 next_and_prev_class = 'css-ad7yub-unf-pagination-item'
-delay = 3
+delay = 10
 product_list = []
-num_of_product = 3
 
 def create_dict():
     name_class = 'css-t9du53'
@@ -29,6 +28,9 @@ def create_dict():
     price_class = 'css-aqsd8m'
     rating_class = 'icon-star'
     seller_class = 'css-12gb68h'
+
+    # wait for the page to load
+    WebDriverWait(driver, delay).until(EC.presence_of_element_located((By.CLASS_NAME, rating_class)))
 
     # check if element more detail button exist
     try:
@@ -66,6 +68,7 @@ def create_dict():
 
 
 index = 0
+product_element_list = []
 while len(product_list) < num_of_product:
     # scroll to bottom to trigger load all product
     driver.execute_script("window.scrollTo(0, 1080)")
@@ -75,7 +78,8 @@ while len(product_list) < num_of_product:
             EC.presence_of_element_located((By.CLASS_NAME, pagination_class)))
         
         # get all product
-        product_element_list = driver.find_elements_by_class_name(product_class)
+        if len(product_element_list) == 0:
+            product_element_list = driver.find_elements_by_class_name(product_class)
         
         # open product in new tab
         element_clicked = product_element_list[index]
@@ -94,8 +98,6 @@ while len(product_list) < num_of_product:
         
             # switch to new tab
             driver.switch_to.window(driver.window_handles[-1])
-            # wait until loading finish
-            time.sleep(delay)
             
             # get all data from product
             product_dict = create_dict()
@@ -109,12 +111,14 @@ while len(product_list) < num_of_product:
 
 
         
-        if index == len(product_element_list) - 1:
+        if index >= len(product_element_list) - 1:
             # go to next page
             # get next and prev button
             next_and_prev_button = driver.find_elements_by_class_name(next_and_prev_class)
             # click next button
             next_and_prev_button[1].click()
+            # reset product_element_list
+            product_element_list = []
             # reset index
             index = 0
         
@@ -122,6 +126,7 @@ while len(product_list) < num_of_product:
 
     except TimeoutException:
         print("Loading took too much time!")
+        break
     
 driver.close()
 
